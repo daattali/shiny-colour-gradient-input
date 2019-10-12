@@ -1,8 +1,10 @@
 # Colour gradient input for R-Shiny
 
+A colour gradient picker for Shiny, implemented as a shiny module. This can be used, for example, in ggplots with the `scale_color_gradientn()` function.
+
 ![screenshot](https://i.imgur.com/KfA7htH.png)
 
-A colour gradient picker for Shiny, implemented as a shiny module. This can be used, for example, in ggplots with the `scale_color_gradientn()` function. The UI function is `gradientInputUI()` and has no parameters. The server function is `gradientInput()` and has 4 parameters:
+The UI function is `gradientInputUI()` and has no parameters. The server function is `gradientInput()` and has 4 parameters:
 
 - **init_num**: Number of colours to use initially. Ignored if `init_positions` is provided. (default: 2)
 - **init_positions**: List of positions of colours to use initially (allowed values between 0 to 1).
@@ -21,7 +23,7 @@ source("gradientInput.R")
 
 ui <- fluidPage(
   gradientInputUI("cols"),
-  tableOutput("result"),
+  tableOutput("result")
 )
 server <- function(input, output, session) {
   result <- callModule(gradientInput, "cols", init_positions = c(0.1, 0.5, 0.7))
