@@ -1,6 +1,6 @@
 # Colour gradient input for R-Shiny
 
-A colour gradient picker for Shiny, implemented as a shiny module. This can be used, for example, in ggplots with the `scale_color_gradientn()` function.
+A colour gradient picker for Shiny, implemented as a shiny module. This can be used, for example, in ggplots with the `scale_color_gradientn()` function. This can most likely be improved upon by making it a proper input instead of a module--left as an exercise for the reader :)
 
 ![screenshot](https://i.imgur.com/KfA7htH.png)
 
@@ -31,3 +31,5 @@ server <- function(input, output, session) {
 }
 shinyApp(ui, server)
 ```
+
+Required packages: `glue`, `colourpicker`, `shinyjs`, `shinyjqui`, `uuid`, `dplyr`
