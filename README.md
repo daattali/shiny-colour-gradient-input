@@ -8,7 +8,7 @@ The UI function is `gradientInputUI()` and has no parameters. The server functio
 
 - **init_num**: Number of colours to use initially. Ignored if `init_positions` is provided. (default: 2)
 - **init_positions**: List of positions of colours to use initially (allowed values between 0 to 1).
-- **allow_modify**: Whether or not the user can add and delete colours. (default: true)
+- **allow_modify**: Whether or not the user can add, delete, and change positions of colours. (default: true)
 - **col_expand**: Whether or not the colour input can expand into a full colour picker text box that lets the user write colour names in English. (default: false)
 
 The return value is a dataframe with 2 columns: `position` (the left position, betweenn 0 to 1) and `col` (the colour hex string).

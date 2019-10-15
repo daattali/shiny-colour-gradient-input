@@ -146,17 +146,25 @@ draggable_colourinput <- function(id,
     class = paste0("gradient-draggable-wrapper",
                    if (col_expand) " col-expand" else ""),
     style = paste0("left:", left, "px"),
-    if (allow_modify) 
+    if (allow_modify)
       actionLink(ns(paste0(id, "-delete")), icon("close"),
                  class = "gradient-draggable-delete"),
     tags$div(class = "gradient-draggable-bar"),
     colourpicker::colourInput(ns(id), NULL, col, showColour = "both")
   )
-  shinyjqui::jqui_draggable(
-    tag,
-    options = list(axis = "x", handle = ".gradient-draggable-bar",
-                   containment = "parent")
-  )
+  if (allow_modify) {
+    shinyjqui::jqui_draggable(
+      tag,
+      options = list(axis = "x", handle = ".gradient-draggable-bar",
+                     containment = "parent")
+    )
+  } else {
+    shinyjqui::jqui_draggable(
+      tag,
+      options = list(axis = "x", handle = NULL,
+                     containment = "parent")
+    )
+  }
 }
 gradientInputUI <- function(id) {
   ns <- NS(id)
@@ -176,37 +184,39 @@ gradientInputUI <- function(id) {
 #' @param init_num Number of colours to use initially. Ignored if `init_positions`
 #'   is provided.
 #' @param init_positions List of positions of colours to use initially (values 0-1).
-#' @param allow_modify Whether or not the user can add and delete colours.
+#' @param allow_modify Whether or not the user can add, delete, and change
+#'   positions of colours.
 #' @param col_expand Whether or not the colour input can expand into a full
 #'   colour picker text box that lets the user write colour names in English.
 gradientInput <- function(input, output, session,
                      init_num = 2, init_positions = NULL,
                      allow_modify = TRUE, col_expand = FALSE) {
   ns <- session$ns
-  
+
   col_inputs <- reactiveVal(NULL)
 
   add_input <- function(id, position = NULL) {
-    colourinput <- draggable_colourinput(id, position = position,
-                                         allow_modify = allow_modify,
-                                         col_expand = col_expand)
-    
+    colourinput <- draggable_colourinput(
+      id,
+      position = position, allow_modify = allow_modify, col_expand = col_expand
+    )
+
     col_inputs(c(col_inputs(), id))
-    
+
     insertUI(
       selector = paste0("#", ns("draggables-container")),
       where = "beforeEnd",
       ui = colourinput
     )
-    
+
     observeEvent(input[[paste0(id, "-delete")]], {
       col_inputs(setdiff(col_inputs(), id))
       shinyjs::addClass(paste0(id, "-draggable"), "invisible")
     }, once = TRUE)
-    
-       
+
+
   }
-  
+
   # Add two colours to begin with
   isolate({
     if (is.null(init_positions)) {
@@ -216,7 +226,7 @@ gradientInput <- function(input, output, session,
       add_input(paste0("col_init_", idx), position = init_positions[idx])
     }
   })
-  
+
   observeEvent(input$add_drag_col, {
     if (!allow_modify) {
       return()
@@ -224,7 +234,7 @@ gradientInput <- function(input, output, session,
     id <- paste0("col_direct_", uuid::UUIDgenerate())
     add_input(id, position = input$add_drag_col / CONTAINER_SIZE)
   })
-  
+
   col_positions <- reactive({
     colours <- lapply(col_inputs(), function(col_input) {
       col <- input[[col_input]]
@@ -241,13 +251,13 @@ gradientInput <- function(input, output, session,
     if (nrow(colours) == 0) {
       return(data.frame(col = character(0), position = character(0)))
     }
-    
+
     colours <- colours[order(colours$position), ]
-    
+
     colours
   })
   col_positions_slow <- debounce(col_positions, 150)
-  
+
   observeEvent(col_positions_slow(), {
     if (nrow(col_positions_slow()) == 0) {
       return()
@@ -258,7 +268,7 @@ gradientInput <- function(input, output, session,
       shinyjs::runjs(js_call)
       return()
     }
-    
+
     percentages <- apply(col_positions_slow(), 1, function(row) {
       paste0(row[["col"]], " ", round(100*as.numeric(row[["position"]])), "%")
     })
@@ -274,7 +284,7 @@ gradientInput <- function(input, output, session,
     js_call <- paste0('$("#', ns("draggables-box"), '")', css_calls_string)
     shinyjs::runjs(js_call)
   })
-  
+
   return(
     col_positions_slow
   )
