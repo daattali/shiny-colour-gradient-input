@@ -21,7 +21,6 @@ The server function is `gradientInput()` and has 4 parameters:
 
 The return value is a dataframe with 2 columns: `position` (the left position, between 0 and 100) and `col` (the colour hex string).
 
-Note that the colours are initialized as random colours every time.
 
 Example usage:
 
