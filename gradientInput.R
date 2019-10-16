@@ -8,11 +8,15 @@ generate_random_col <- function() {
 }
 
 draggable_colourinput <- function(id,
-                                  col = generate_random_col(),
+                                  col = NULL,
                                   position = NULL,
                                   allow_modify = TRUE,
                                   col_expand = TRUE) {
   ns <- getDefaultReactiveDomain()$ns
+
+  if (is.null(col)) {
+    col <- generate_random_col()
+  }
 
   if (is.null(position)) {
     left <- 0
@@ -77,23 +81,35 @@ gradientInputUI <- function(id, width = NULL, resource_path = ".") {
   )
 }
 
-#' @param init_num Number of colours to use initially. Ignored if `init_positions`
-#'   is provided.
-#' @param init_positions List of positions of colours to use initially (values 0-100).
+#' @param init_col The initial state of the colour gradient. There are 4 different
+#'   values that are accepted: 1. If a single integer N is provided (eg. `5`),
+#'   then the input is initialized with N colours. The colours are random and
+#'   their positions are evenly distributed. 2. If a vector of N integers is provided
+#'   (each number must be between 0 and 100) (eg. `c(10, 40, 90)`), the input is
+#'   initialized with N different colours and each number in the vector corresponds
+#'   to the position of one colour. The colours are random. 3. If a vector of N
+#'   colours is provided (a colour can be any R colour name or a HEX string)
+#'   (eg. `c("red", "blue", "#00FF00")`), the input is initialized with these N
+#'   colours. The positions of the colours are distributed evenly. 4. If a
+#'   dataframe with 2 columns "col" (any R colour) and "position" (number between
+#'   0 and 100) and N rows is provided, the input is initialized with N colours.
+#'   Each colour uses the "col" column as its initial colour and "position" as
+#'   its initial position. The default behaviour is to initialize with 2 random
+#'   colours.
 #' @param allow_modify Whether or not the user can add, delete, and change
 #'   positions of colours.
 #' @param col_expand Whether or not the colour input can expand into a full
 #'   colour picker text box that lets the user write colour names in English.
 gradientInput <- function(input, output, session,
-                     init_num = 2, init_positions = NULL,
-                     allow_modify = TRUE, col_expand = FALSE) {
+                          init_cols = 2, allow_modify = TRUE, col_expand = FALSE) {
   ns <- session$ns
 
+  # A list keeping track of all the IDs of the inputs that exist
   col_inputs <- reactiveVal(NULL)
 
-  add_input <- function(id, position = NULL) {
+  add_input <- function(id, position = NULL, col = NULL) {
     colourinput <- draggable_colourinput(
-      id,
+      id, col = col,
       position = position, allow_modify = allow_modify, col_expand = col_expand
     )
 
@@ -111,15 +127,56 @@ gradientInput <- function(input, output, session,
     }, once = TRUE)
   }
 
+  # Initialize the javascript for this input that will take care of fixing the
+  # colours whenever the element resizes
   shinyjs::runjs(paste0("GradientInputInitResize('", ns(""), "')"))
 
-  # Add two colours to begin with
+  # Add the initial colours
   isolate({
-    if (is.null(init_positions)) {
-      init_positions <- seq(0, 100, length.out = init_num)
+    err_msg <- paste0("init_cols must be either: a single positive integer, ",
+                      "a vector of integers between 0 and 100, ",
+                      "a vector of colours, ",
+                      "or a dataframe with 'col' and 'position' variables.")
+
+    if (is.numeric(init_cols)) {
+      if (length(init_cols) == 1) {
+        if (init_cols >= 0 && init_cols %% 1 == 0) {
+          init_positions <- seq(0, 100, length.out = init_cols)
+        } else {
+          stop(err_msg)
+        }
+      } else if (length(init_cols) > 1) {
+        if (all(init_cols %% 1 == 0)) {
+          init_positions <- init_cols
+        } else {
+          stop(err_msg)
+        }
+      } else {
+        stop(err_msg)
+      }
+
+      init_cols <- data.frame(
+        col = unlist(lapply(seq_along(init_positions), function(x) generate_random_col())),
+        position = init_positions
+      )
     }
-    for (idx in seq(init_positions)) {
-      add_input(paste0("col_init_", idx), position = init_positions[idx])
+
+    if (is.character(init_cols)) {
+      init_cols <- data.frame(
+        col = init_cols,
+        position = seq(0, 100, length.out = length(init_cols))
+      )
+    }
+
+    if (is.data.frame(init_cols) && ncol(init_cols) == 2 &&
+        all(c("col", "position") %in% colnames(init_cols))) {
+      by(init_cols, seq_len(nrow(init_cols)), function(row) {
+        add_input(paste0("col_init_", rownames(row)),
+                  position = row$position,
+                  col = row$col)
+      })
+    } else {
+      stop(err_msg)
     }
   })
 
