@@ -19,7 +19,9 @@ The server function is `gradientInput()` and has 4 parameters:
 - **allow_modify**: Whether or not the user can add, delete, and change positions of colours. (default: true)
 - **col_expand**: Whether or not the colour input can expand into a full colour picker text box that lets the user write colour names in English. (default: false)
 
-The return value is a dataframe with 2 columns: `position` (the left position, between 0 and 100) and `col` (the colour hex string).
+The return value is a list with two items:
+- `result`: a dataframe with 2 columns: `position` (the left position, between 0 and 100) and `col` (the colour hex string).
+- `reset`: a function that will reset the gradient input back to its original state.
 
 
 Example usage:
@@ -30,11 +32,16 @@ source("gradientInput.R")
 
 ui <- fluidPage(
   gradientInputUI("cols"),
-  tableOutput("result")
+  tableOutput("result"),
+  actionButton("reset", "Reset")
 )
 server <- function(input, output, session) {
-  result <- callModule(gradientInput, "cols", init_cols = c(10, 50, 70))
-  output$result <- renderTable(result())
+  gradient <- callModule(gradientInput, "cols", init_cols = c(10, 50, 70))
+  output$result <- renderTable(gradient$result())
+  
+  observeEvent(input$reset, {
+    gradient$reset()
+  })
 }
 shinyApp(ui, server)
 ```
